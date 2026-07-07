@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="HandheldFriendly" content="true" />
+    <title>Handle error</title>
+    <link rel="stylesheet" href="../assets/style/reset.css" />
+    <link rel="stylesheet" href="../assets/style/components.css" />
+    <link rel="stylesheet" href="../assets/style/examples.css" />
+    <script type="text/javascript" src="../../dist/iink.min.js"></script>
+    <style>
+      #editor {
+        height: calc(100vh - 166px);
+      }
+      @media only screen and (max-width: 294px) {
+        #editor {
+          height: calc(100vh - 213px);
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="result"></div>
+
+    <nav class="flex-container wrap gap between">
+      <div class="flex-container wrap gap">
+        <button id="clear" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+          <img src="../assets/img/clear.svg" />
+        </button>
+        <button id="undo" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+          <img src="../assets/img/undo.svg" />
+        </button>
+        <button id="redo" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+          <img src="../assets/img/redo.svg" />
+        </button>
+      </div>
+    </nav>
+    <div id="editor" touch-action="none"></div>
+
+    <script>
+      const editorElement = document.getElementById("editor");
+
+      /**
+       * we expose the editor for use in the integration test
+       */
+      let editor;
+
+      /**
+       * We use a function to wait the server configuration to load
+       */
+      async function loadEditor() {
+        const res = await fetch("../server-configuration.json");
+        const conf = await res.json();
+        const options = {
+          configuration: {
+            server: {
+              ...conf,
+              protocol: "WEBSOCKET",
+              applicationKey: 'xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+              hmacKey: 'xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+            },
+            recognition: {
+              type: "TEXT"
+            }
+          }
+        };
+        /**
+         * Instanciate editor
+         * @param {Element} The DOM element to attach the ink paper
+         * @param {Object} The Editor parameters
+         */
+        editor = new iink.Editor(editorElement, options);
+        /**
+         *  async initialize editor behaviors
+         */
+        await editor.initialize();
+      };
+
+      loadEditor().catch(error => console.error(error));
+    </script>
+  </body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="HandheldFriendly" content="true" />
+
+    <title>Rest Diagram Import</title>
+
+    <link rel="stylesheet" href="../assets/style/reset.css" />
+    <link rel="stylesheet" href="../assets/style/components.css" />
+    <link rel="stylesheet" href="../assets/style/examples.css" />
+    <style>
+      #editor {
+        height: calc(100vh - 260px);
+      }
+      @media only screen and (max-width: 520px) {
+        #editor {
+          height: calc(100vh - 310px);
+        }
+      }
+      @media only screen and (max-width: 363px) {
+        #editor {
+          height: calc(100vh - 363px);
+        }
+      }
+      #progress {
+        transition: width 10s;
+        width: 0;
+        height: 2px;
+        background-color: #1a9fff;
+        opacity: 0;
+      }
+    </style>
+
+    <script type="text/javascript" src="../../dist/iink.min.js"></script>
+  </head>
+
+  <body>
+    <div id="result"></div>
+
+    <nav>
+      <div class="flex-container wrap gap between">
+        <div class="flex-container gap">
+          <button id="clear" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+            <img src="../assets/img/clear.svg" />
+          </button>
+          <button id="undo" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+            <img src="../assets/img/undo.svg" />
+          </button>
+          <button id="redo" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+            <img src="../assets/img/redo.svg" />
+          </button>
+        </div>
+        <div class="flex-container gap">
+          <button id="pen" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+            <img src="../assets/img/pen.svg" />
+          </button>
+          <button id="eraser" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+            <img src="../assets/img/eraser.svg" />
+          </button>
+        </div>
+        <div class="flex-container wrap gap">
+          <button class="classic-btn" id="import-btn">Import</button>
+          <div id="preview-container">
+            <div id="preview-btn" class="classic-btn">
+              <img src="../assets/img/document.svg" />
+              <span>Preview</span>
+            </div>
+            <div id="edit-btn" class="classic-btn" style="display: none">
+              <img src="../assets/img/edit.svg" />
+              <span>Edit</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="separator horizontal"></div>
+      <div class="flex-container between gap wrap">
+        <div class="flex-container gap">
+          <label for="penenabled">Enable pen color/thickness: </label>
+          <input id="penenabled" type="checkbox" />
+        </div>
+        <div class="flex-container gap">
+          <label for="pencolor">Color:</label>
+          <input id="pencolor" class="input-field pen-color-field" type="color" value="#ff7314" disabled/>
+        </div>
+        <div class="flex-container gap">
+          <label for="penwidth">Thickness:</label>
+          <input id="penwidth" class="pen-width-field" type="number" min="1" max="5" value="2" disabled/>
+        </div>
+      </div>
+    </nav>
+
+    <div id="progress"></div>
+
+    <div id="editor" touch-action="none">
+      <svg id="converted-svg"></svg>
+    </div>
+
+    <script>
+      const editorElement = document.getElementById("editor");
+      const resultElement = document.getElementById("result");
+      const clearElement = document.getElementById("clear");
+      const editButton = document.getElementById("edit-btn");
+      const previewButton = document.getElementById("preview-btn");
+      const importBtn = document.getElementById("import-btn");
+      const progressElement = document.getElementById("progress");
+      const undoElement = document.getElementById("undo");
+      const redoElement = document.getElementById("redo");
+      const eraserElement = document.getElementById("eraser");
+      const penElement = document.getElementById("pen");
+
+      const penEnabled = document.getElementById("penenabled");
+      const penColor = document.getElementById("pencolor");
+      const penWidth = document.getElementById("penwidth");
+      function getStyle() {
+        return {
+          color: penColor.value,
+          "-myscript-pen-width": penWidth.value
+        };
+      }
+
+      let exports = "";
+      let firstChanged = true;
+      let undoRedoClearChanged = false;
+      let isPreview = false;
+
+      function launchLoader() {
+        progressElement.style.transition = " width 10s";
+        progressElement.style.opacity = "1";
+        progressElement.style.width = `${editorElement.clientWidth}px`;
+      }
+
+      function manageEmptySvg() {
+        if (document.getElementById("converted-svg")) {
+          document.getElementById("converted-svg").remove();
+        }
+        const emptySvgElement = document.createElement("svg");
+        emptySvgElement.id = "converted-svg";
+        editorElement.appendChild(emptySvgElement);
+      }
+
+      function manageEditMode(withExport) {
+        if (withExport && isPreview && editor.model.symbols.length > 0) {
+          const convertParams = {
+            conversionState: "DIGITAL_EDIT",
+            mimeTypes: ["image/svg+xml"]
+          };
+          editor.convert(convertParams);
+          launchLoader();
+        } else if (editor.model.symbols.length === 0) {
+          manageEmptySvg();
+        }
+        const convertedSvg = document.getElementById("converted-svg");
+        const canvasRendering = document.querySelector(".ms-rendering-canvas.ms-canvas");
+        const canvasCapture = document.querySelector(".ms-capture-canvas.ms-canvas");
+        undoElement.disabled = isPreview;
+        redoElement.disabled = isPreview;
+        clearElement.disabled = isPreview;
+        penEnabled.disabled = isPreview;
+        penColor.disabled = isPreview;
+        penWidth.disabled = isPreview;
+        eraserElement.disabled = isPreview || editor.intention === iink.Intention.Erase;
+        penElement.disabled = isPreview || editor.intention === iink.Intention.Write;
+        importBtn.style.visibility = isPreview ? "hidden" : "visible";
+        if (!isPreview) {
+          convertedSvg.style.visibility = "hidden";
+          canvasRendering.style.display = "initial";
+          canvasCapture.style.display = "initial";
+          editorElement.style.pointerEvents = "initial";
+        } else {
+          convertedSvg.style.visibility = "visible";
+          canvasRendering.style.display = "none";
+          canvasCapture.style.display = "none";
+          editorElement.style.pointerEvents = "none";
+        }
+      }
+
+      /**
+       * we expose the editor for use in the integration test
+       */
+      let editor;
+
+      /**
+       * We use a function to wait the server configuration to load
+       */
+      async function loadEditor() {
+        const res = await fetch("../server-configuration.json");
+        const conf = await res.json();
+        const options = {
+          configuration: {
+            server: {
+              ...conf,
+              protocol: "REST"
+            },
+            recognition: {
+              type: "DIAGRAM"
+            }
+          }
+        };
+        /**
+         * Instanciate editor
+         * @param {Element} The DOM element to attach the ink paper
+         * @param {Object} The Editor parameters
+         */
+        editor = new iink.Editor(editorElement, options);
+        /**
+         *  async initialize editor behaviors
+         */
+        await editor.initialize();
+
+        editor.events.addEventListener("changed", (event) => {
+          undoElement.disabled = !event.detail.canUndo || isPreview;
+          redoElement.disabled = !event.detail.canRedo || isPreview;
+          clearElement.disabled = !event.detail.canClear || isPreview;
+          eraserElement.disabled = !event.detail.canClear || editor.intention === iink.Intention.Erase || isPreview;
+        });
+
+        editor.events.addEventListener("exported", (event) => {
+          resultElement.innerHTML = JSON.stringify(event.detail || {});
+        });
+
+        editor.events.addEventListener("converted", (evt) => {
+          const exports = evt.detail;
+          if (exports && exports["image/svg+xml"]) {
+            progressElement.style.transition = " width 0.3s";
+            progressElement.style.width = `${editorElement.clientWidth}px`;
+            setTimeout(() => {
+              progressElement.style.opacity = "0";
+              progressElement.style.width = "0";
+            }, 300);
+            clearElement.disabled = false;
+            const divSvgElement = document.createElement("div");
+            divSvgElement.innerHTML = exports["image/svg+xml"].trim();
+            const svgElement = divSvgElement.firstChild;
+            svgElement.id = "converted-svg";
+            svgElement.setAttribute("width", editorElement.clientWidth);
+            svgElement.setAttribute("height", editorElement.clientHeight);
+            svgElement.setAttribute("viewBox", `0 0 ${editorElement.clientWidth / 3.77953} ${editorElement.clientHeight / 3.77953}`);
+            if (document.getElementById("converted-svg")) {
+              document.getElementById("converted-svg").remove();
+            }
+            editorElement.appendChild(svgElement);
+            manageEditMode(false);
+          }
+        });
+
+        clearElement.addEventListener("click", () => {
+          undoRedoClearChanged = true;
+          editor.clear();
+          manageEmptySvg();
+        });
+
+        undoElement.addEventListener("click", () => {
+          editor.undo();
+        });
+
+        redoElement.addEventListener("click", () => {
+          editor.redo();
+        });
+
+        eraserElement.addEventListener("click", () => {
+          eraserElement.disabled = true;
+          penElement.disabled = false;
+          editorElement.editor.intention = iink.Intention.Erase;
+          eraserElement.disabled = true;
+          eraserElement.classList.add("active");
+          penElement.disabled = false;
+          penElement.classList.remove("active");
+        });
+
+        penElement.addEventListener("click", () => {
+          eraserElement.disabled = false;
+          penElement.disabled = true;
+          editorElement.editor.intention = iink.Intention.Write;
+          eraserElement.disabled = false;
+          eraserElement.classList.remove("active");
+          penElement.disabled = true;
+          penElement.classList.add("active");
+        });
+
+        penEnabled.addEventListener("change", (event) => {
+          penWidth.disabled = !event.target.checked;
+          penColor.disabled = !event.target.checked;
+          if (event.target.checked) {
+            editor.penStyle = getStyle();
+          } else {
+            editor.penStyle = undefined;
+          }
+        });
+
+        penColor.addEventListener("input", () => {
+          editor.penStyle = getStyle();
+        });
+
+        penWidth.addEventListener("change", () => {
+          editor.penStyle = getStyle();
+        });
+
+        importBtn.addEventListener("click", async () => {
+          const strokeRes = await fetch("../assets/datas/diagram-pointers-2.json");
+          const strokes = await strokeRes.json();
+          await editor.importPointEvents(strokes);
+        });
+
+        previewButton.addEventListener("click", () => {
+          isPreview = true;
+          previewButton.style.display = "none";
+          editButton.style.display = "flex";
+          manageEditMode(true);
+        });
+
+        editButton.addEventListener("click", () => {
+          isPreview = false;
+          editButton.style.display = "none";
+          previewButton.style.display = "flex";
+          manageEditMode(false);
+        });
+
+        window.addEventListener("resize", () => {
+          editor.resize();
+        });
+      };
+
+      loadEditor().catch(error => console.error(error));
+    </script>
+  </body>
+</html>

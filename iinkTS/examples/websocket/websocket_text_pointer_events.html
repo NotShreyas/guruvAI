@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="HandheldFriendly" content="true" />
+
+    <title>Pointer events</title>
+
+    <link rel="stylesheet" href="../assets/style/reset.css" />
+    <link rel="stylesheet" href="../assets/style/components.css" />
+    <link rel="stylesheet" href="../assets/style/examples.css" />
+    <style>
+      nav {
+        justify-content: unset;
+      }
+
+      #editor {
+        height: 50vh;
+      }
+
+      textarea {
+        width: 100vw;
+        height: calc(50vh - 58px);
+      }
+
+      #pointerEvents {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+      }
+    </style>
+
+    <script type="text/javascript" src="../../dist/iink.min.js"></script>
+  </head>
+
+  <body>
+    <div>
+      <div id="editor" touch-action="none"></div>
+      <textarea id="pointerEventsObject">
+[
+  {
+    "pointerType": "mouse",
+    "pointerId": 0,
+    "pointers": [
+      { "x": 295, "y": 187, "t": 1693517651635, "p": 0.1 },
+      { "x": 298, "y": 180, "t": 1693517651753, "p": 0.79 },
+      { "x": 303, "y": 171, "t": 1693517651769, "p": 0.68 },
+      { "x": 309, "y": 160, "t": 1693517651786, "p": 0.65 },
+      { "x": 315, "y": 149, "t": 1693517651802, "p": 0.65 },
+      { "x": 318, "y": 142, "t": 1693517651819, "p": 0.79 },
+      { "x": 325, "y": 136, "t": 1693517651836, "p": 0.81 },
+      { "x": 328, "y": 134, "t": 1693517651853, "p": 0.7 },
+      { "x": 333, "y": 147, "t": 1693517651920, "p": 0.63 },
+      { "x": 335, "y": 158, "t": 1693517651937, "p": 0.67 },
+      { "x": 335, "y": 165, "t": 1693517651953, "p": 0.78 },
+      { "x": 336, "y": 171, "t": 1693517651970, "p": 0.77 },
+      { "x": 335, "y": 180, "t": 1693517651987, "p": 0.81 },
+      { "x": 334, "y": 184, "t": 1693517652003, "p": 0.72 }
+    ]
+  },
+  {
+    "pointerType": "mouse",
+    "pointerId": 0,
+    "pointers": [
+      { "x": 313, "y": 161, "t": 1693517652401, "p": 0.1 },
+      { "x": 317, "y": 160, "t": 1693517652454, "p": 0.72 },
+      { "x": 321, "y": 159, "t": 1693517652487, "p": 0.72 },
+      { "x": 325, "y": 159, "t": 1693517652503, "p": 0.71 },
+      { "x": 336, "y": 159, "t": 1693517652520, "p": 0.67 },
+      { "x": 342, "y": 159, "t": 1693517652536, "p": 0.77 },
+      { "x": 346, "y": 158, "t": 1693517652554, "p": 0.72 }
+    ]
+  }
+]
+      </textarea>
+      <button class="classic-btn" id="pointerEvents">Process</button>
+    </div>
+    <script>
+      const editorElement = document.getElementById("editor");
+      const pointerEventsElement = document.getElementById("pointerEvents");
+      const pointerEventsObjectElement = document.getElementById("pointerEventsObject");
+
+      /**
+       * we expose the editor for use in the integration test
+       */
+      let editor;
+
+      async function loadEditor() {
+        const res = await fetch("../server-configuration.json");
+        const conf = await res.json();
+        const options = {
+          configuration: {
+            server: {
+              ...conf,
+              protocol: "WEBSOCKET"
+            },
+            recognition: {
+              type: "TEXT"
+            }
+          }
+        };
+        /**
+         * Instanciate editor
+         * @param {Element} The DOM element to attach the ink paper
+         * @param {Object} The Editor parameters
+         */
+        editor = new iink.Editor(editorElement, options);
+        /**
+         *  async initialize editor behaviors
+         */
+        await editor.initialize();
+
+        pointerEventsElement.addEventListener("click", () => {
+          editor.importPointEvents(JSON.parse(pointerEventsObjectElement.value));
+        });
+
+        window.addEventListener("resize", () => {
+          editor.resize();
+        });
+      };
+
+      loadEditor().catch(error => console.error(error));
+    </script>
+  </body>
+</html>

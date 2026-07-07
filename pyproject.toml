@@ -1,0 +1,16 @@
+[project]
+name = "guruvai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.114.2",
+    "conva-ai>=0.2.3",
+    "requests>=2.32.3",
+    "boto3>=1.35.20",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

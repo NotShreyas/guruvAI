@@ -1,0 +1,667 @@
+<!--
+// v0 by Vercel.
+// https://v0.dev/t/D353QLMPkDe
+-->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="globals.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="node_modules/iink-js/dist/iink.min.js"></script>
+  <script src="https://code.jquery.com/pep/0.4.3/pep.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js" integrity="sha512-LQNxIMR5rXv7o+b1l8+N1EZMfhG7iFZ9HhnbJkTp4zjNr5Wvst75AqUeFDxeRUa7l5vEDyUiAip//r+EFLLCyA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+  <style>
+    :root {
+      --background: 210 100% 97%;
+      --foreground: 339 20% 20%;
+      --primary: 308 56% 85%;
+      --primary-foreground: 210 22% 22%;
+      --secondary: 196 75% 88%;
+      --secondary-foreground: 210 22% 22%;
+      --accent: 211 86% 70%;
+      --accent-foreground: 210 22% 22%;
+      --destructive: 0 93% 73%;
+      --destructive-foreground: 210 22% 22%;
+      --muted: 210 100% 95%;
+      --muted-foreground: 210 22% 22%;
+      --card: 210 100% 97%;
+      --card-foreground: 210 22% 22%;
+      --popover: 0 0% 100%;
+      --popover-foreground: 341 20% 22%;
+      --border: 210 40% 80%;
+      --input: 210 40% 56%;
+      --ring: 210 40% 60%;
+      --chart-1: 308 56% 85%;
+      --chart-2: 211 96% 70%;
+      --chart-3: 45 100% 80%;
+      --chart-4: 180 60% 85%;
+      --chart-5: 120 50% 80%;
+      --radius: 1rem;
+    }
+    body {
+      background: #f3f3ee;
+    }
+    #msg {
+      height: 50px;
+      font-size: 15px;
+      flex-grow: 1;
+      border-radius: 10px;
+      padding: 5px;
+    }
+    #sendbox {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      justify-content: space-around;
+      height: 100px;
+      padding: 5px;
+    }
+    #send {
+      background: #eed7b2;
+      height: 50px;
+      border-radius: 10px;
+    }
+    img[src="/placeholder.svg"],
+    img[src="/placeholder-user.jpg"] {
+      filter: sepia(0.3) hue-rotate(150deg) saturate(0.5) opacity(0.8);
+    }
+    #blurContainer {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #ccc;
+      cursor: pointer;
+    }
+
+    /* The blurred content */
+    #blurredContent {
+      filter: blur(10px);
+      transition: filter 0.3s ease;
+    }
+
+    /* The overlay with text */
+    #blurOverlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 18px;
+      color: white;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 5px;
+      pointer-events: none; /* Prevent overlay from interfering with clicks */
+    }
+
+    /* Unblurred state */
+    #blurContainer.unblurred #blurredContent {
+      filter: none;
+    }
+  </style>
+  <style>
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-family: "Manrope", sans-serif;
+      --font-sans-serif: "Manrope";
+    }
+  </style>
+  <style>
+    body {
+      font-family: "Manrope", sans-serif;
+      --font-sans-serif: "Manrope";
+    }
+  </style>
+  <div class="grid grid-cols-[1fr_300px] h-screen w-full">
+    <div class="flex flex-col bg-background text-foreground">
+      <div
+        class="sticky top-0 z-10 flex items-center justify-between bg-background px-4 py-3 shadow"
+      >
+        <h1 class="text-2xl font-bold">GuruvAI</h1>
+        <h3 class="text-sm font-semibold text-gray-500">
+          Tasmai Śrīgurave namaḥ
+        </h3>
+        <button
+          class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10 ml-auto rounded-full"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="h-6 w-6"
+          >
+            <path d="M12 8V4H8"></path>
+            <rect width="16" height="12" x="4" y="8" rx="2"></rect>
+            <path d="M2 14h2"></path>
+            <path d="M20 14h2"></path>
+            <path d="M15 13v2"></path>
+            <path d="M9 13v2"></path>
+          </svg>
+          <span class="sr-only">Toggle AI Chatbot</span>
+        </button>
+      </div>
+      <div class="flex-1 overflow-auto p-6">
+        <div class="mx-auto w-full h-full">
+          <div class="relative h-[90%] w-full rounded-lg border border-muted">
+            <div
+              id="editor"
+              class="h-full w-full cursor-crosshair rounded-md bg-muted text-sm"
+            ></div>
+          </div>
+          <div class="mt-4 flex justify-between">
+            <div class="flex items-center gap-2">
+              <button
+                id="clear"
+                class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-5 w-5"
+                >
+                  <path
+                    d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"
+                  ></path>
+                  <path d="M22 21H7"></path>
+                  <path d="m5 11 9 9"></path>
+                </svg>
+                <span class="sr-only">Erase</span>
+              </button>
+              <button
+                id="undo"
+                class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-5 w-5"
+                >
+                  <path d="M3 7v6h6"></path>
+                  <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+                </svg>
+                <span class="sr-only">Undo</span>
+              </button>
+              <button
+                id="redo"
+                class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-5 w-5"
+                >
+                  <path d="M21 7v6h-6"></path>
+                  <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
+                </svg>
+                <span class="sr-only">Redo</span>
+              </button>
+              <button
+                id="convert"
+                class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path
+                    d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
+                  />
+                  <path d="M21 3v5h-5" />
+                  <path
+                    d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
+                  />
+                  <path d="M8 16H3v5" />
+                </svg>
+                <span class="sr-only">Convert to LaTeX</span>
+              </button>
+              <button
+                id="justSendLatex"
+                class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-5 w-5"
+                >
+                  <polygon points="6 3 20 12 6 21 6 3"></polygon>
+                </svg>
+                <span class="sr-only">Play</span>
+              </button>
+              <button
+                id="copy"
+                class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-5 w-5"
+                >
+                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+                  <path
+                    d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"
+                  ></path>
+                </svg>
+                <span class="sr-only">Copy</span>
+              </button>
+              <button
+                id="mistakes"
+                class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-5 w-5"
+                >
+                  <path d="M12 17h.01"></path>
+                  <path
+                    d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"
+                  ></path>
+                  <path d="M9.1 9a3 3 0 0 1 5.82 1c0 2-3 3-3 3"></path>
+                </svg>
+                <span class="sr-only">Ask for mistakes</span>
+              </button>
+              <button
+                id="solution"
+                class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 w-10"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-5 w-5"
+                >
+                  <path
+                    d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"
+                  ></path>
+                  <path d="M9 18h6"></path>
+                  <path d="M10 22h4"></path>
+                </svg>
+                <span class="sr-only">Ask for solution</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      class="flex max-h-screen flex-col bg-background text-foreground border-l border-muted"
+    >
+      <div
+        class="sticky top-0 z-10 flex items-center justify-between bg-background px-4 py-3 shadow"
+      >
+        <h2 class="text-xl font-bold">AI Chatbot</h2>
+      </div>
+      <div id="msgbox" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
+      <div
+        id="sendbox"
+        className="flex items-center gap-2 h-[100px] justify-around mb-7"
+      >
+        <input
+          id="msg"
+          type="text"
+          placeholder="Type a command for the chatbot..."
+          className="flex-1 h-full grow"
+        />
+        <button id="send" class="w-[50px] h-full">Send</button>
+      </div>
+    </div>
+  </div>
+  <audio id="audio" style="display: none"></audio>
+  <!-- <div
+    class="fixed bottom-10 left-3 z-[9999] rounded-[4px] bg-red-500 px-2 py-1 text-[12px] text-white/90"
+  >
+    Error: equation is not defined
+  </div> 
+  <div id="blurContainer" class="blurred">
+        <div id="blurOverlay">Click to unblur</div>
+        <div id="blurredContent">
+            <!-- Your content goes here -->
+  <!--- This is the content inside the div. It will be initially blurred.
+        </div>
+    </div> --->
+  <script>
+    let url_ = new URL(window.location.href);
+    url_.port = "8000";
+    url_.pathname = "/";
+    function base64ToBlob(base64, mime) {
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+
+      const byteArray = new Uint8Array(byteNumbers);
+      return new Blob([byteArray], { type: mime });
+    }
+    function addUserMsg(message) {
+      const msgbox = document.getElementById("msgbox");
+      const div = document.createElement("div");
+      div.className = "flex items-start gap-4";
+      div.innerHTML = `
+          <span
+            class="relative flex shrink-0 overflow-hidden rounded-full w-8 h-8 border"
+          >
+            <svg class="aspect-square h-full w-full" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="256" height="256" viewBox="0 0 256 256" xml:space="preserve">
+
+<defs>
+</defs>
+<g style="stroke: none; stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 10; fill: none; fill-rule: nonzero; opacity: 1;" transform="translate(1.4065934065934016 1.4065934065934016) scale(2.81 2.81)" >
+	<path d="M 45 90 C 20.187 90 0 69.813 0 45 C 0 20.187 20.187 0 45 0 c 24.813 0 45 20.187 45 45 C 90 69.813 69.813 90 45 90 z M 45 2 C 21.29 2 2 21.29 2 45 c 0 23.71 19.29 43 43 43 c 23.71 0 43 -19.29 43 -43 C 88 21.29 68.71 2 45 2 z" style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 10; fill: rgb(0,0,0); fill-rule: nonzero; opacity: 1;" transform=" matrix(1 0 0 1 0 0) " stroke-linecap="round" />
+	<path d="M 45 51.117 c -8.632 0 -15.655 -7.023 -15.655 -15.655 S 36.368 19.808 45 19.808 s 15.654 7.023 15.654 15.655 S 53.632 51.117 45 51.117 z M 45 21.808 c -7.529 0 -13.655 6.125 -13.655 13.655 S 37.471 49.117 45 49.117 s 13.654 -6.125 13.654 -13.655 S 52.529 21.808 45 21.808 z" style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 10; fill: rgb(0,0,0); fill-rule: nonzero; opacity: 1;" transform=" matrix(1 0 0 1 0 0) " stroke-linecap="round" />
+	<path d="M 45 90 c -7.53 0 -14.986 -1.9 -21.56 -5.495 l -0.521 -0.284 V 71.197 c 0 -12.175 9.905 -22.08 22.081 -22.08 c 12.176 0 22.081 9.905 22.081 22.08 v 13.023 l -0.521 0.284 C 59.985 88.1 52.53 90 45 90 z M 24.919 83.03 C 31.072 86.283 38.002 88 45 88 s 13.928 -1.717 20.081 -4.97 V 71.197 c 0 -11.072 -9.009 -20.08 -20.081 -20.08 s -20.081 9.008 -20.081 20.08 V 83.03 z" style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-linejoin: miter; stroke-miterlimit: 10; fill: rgb(0,0,0); fill-rule: nonzero; opacity: 1;" transform=" matrix(1 0 0 1 0 0) " stroke-linecap="round" />
+</g>
+</svg>
+          </span>
+          <div class="grid gap-1.5">
+            <div class="flex items-center gap-2">
+              <div class="font-semibold">You</div>
+              <div class="text-xs text-muted-foreground">Just now</div>
+            </div>
+            <div
+              class="rounded-lg bg-primary text-primary-foreground p-3 text-sm break-words"
+            >
+              ${message}
+            </div>
+          </div>
+          `;
+      msgbox.appendChild(div);
+    }
+    function addBotMsg(message, to = "msgbox") {
+      const msgbox = document.getElementById(to);
+      const div = document.createElement("div");
+      div.className = "flex items-start gap-4";
+      div.innerHTML = `
+          <span
+            class="relative flex shrink-0 overflow-hidden rounded-full w-8 h-8 border"
+          >
+            <img
+              class="aspect-square h-full w-full"
+              alt="Image"
+              src="/placeholder-bot.png"
+            />
+          </span>
+          <div class="grid gap-1.5">
+            <div class="flex items-center gap-2">
+              <div class="font-semibold">AI Chatbot</div>
+              <div class="text-xs text-muted-foreground">Just now</div>
+            </div>
+            <div class="rounded-lg bg-muted p-3 text-sm break-words">
+              ${message}
+            </div>
+          </div>
+            `;
+      msgbox.appendChild(div);
+    }
+    function cleanLatex(latexExport) {
+      if (latexExport.includes("\\\\")) {
+        const steps = "\\begin{align*}" + latexExport + "\\end{align*}";
+        return steps
+          .replace("\\begin{aligned}", "")
+          .replace("\\end{aligned}", "")
+          .replace(new RegExp("(align.{1})", "g"), "aligned");
+      }
+      return latexExport.replace(new RegExp("(align.{1})", "g"), "aligned");
+    }
+    const editorElement = document.getElementById("editor");
+    //const resultElement = document.getElementById('result');
+    const convertElement = document.getElementById("convert");
+    const clearElement = document.getElementById("clear");
+    const undoElement = document.getElementById("undo");
+    const redoElement = document.getElementById("redo");
+    const copyElement = document.getElementById("copy");
+    const sendElement = document.getElementById("send");
+    const justSendLatexElement = document.getElementById("justSendLatex");
+    const mistakesElement = document.getElementById("mistakes");
+    const solutionElement = document.getElementById("solution");
+    let intrv = null;
+    let code = "";
+    let jiix = "";
+    //let generator = new HtmlGenerator({ hyphenate: false })
+    iink.register(editorElement, {
+      recognitionParams: {
+        type: "MATH",
+        protocol: "WEBSOCKET",
+        server: {
+          applicationKey: "cf117228-b3d8-417e-ad20-e71132cc56b5",
+          hmacKey: "85565ec9-c2f6-4d23-a0e4-5feb781cd14d",
+        },
+        iink: {
+          import: {
+            mimeTypes: [
+              "application/x-latex",
+              "application/vnd.myscript.jiix",
+              "application/mathml+xml",
+            ],
+          },
+          math: {
+            mimeTypes: [
+              "application/x-latex",
+              "application/vnd.myscript.jiix",
+              "application/mathml+xml",
+            ],
+            solver: {
+              enable: false,
+            },
+            convert: {
+              animate: true,
+            },
+          },
+          export: {
+            jiix: {
+              strokes: true,
+              "bounding-box": true,
+            },
+          },
+        },
+      },
+    });
+    editorElement.addEventListener("exported", (evt) => {
+      const exports = evt.detail.exports;
+      console.log("exported");
+      if (exports && exports["application/vnd.myscript.jiix"]) {
+        jiix = exports["application/vnd.myscript.jiix"];
+        console.log(jiix);
+      }
+      if (exports && exports["application/x-latex"]) {
+        //resultElement.innerText = parse(cleanLatex(exports['application/x-latex']), /*{ generator }*/).htmlDocument();
+        code = exports["application/x-latex"];
+        if (intrv) clearTimeout(intrv);
+        intrv = setTimeout(() => {
+          console.log(code);
+          console.log(exports);
+          /*katex.render(cleanLatex(code), resultElement, {
+            throwOnError: false
+          });*/
+          editorElement.editor.convert();
+          //console.log(cleanLatex(exports['application/x-latex']));
+        }, 2000);
+        convertElement.disabled = false;
+        clearElement.disabled = false;
+      } else {
+        //convertElement.disabled = true;
+        //resultElement.innerHTML = '';
+      }
+    });
+    clearElement.addEventListener("click", () => {
+      code = "";
+      //resultElement.innerHTML = '';
+      editorElement.editor.clear();
+      convertElement.disabled = true;
+      clearElement.disabled = true;
+    });
+    convertElement.addEventListener("click", () => {
+      editorElement.editor.convert();
+    });
+    undoElement.addEventListener("click", () => {
+      editorElement.editor.undo();
+    });
+    redoElement.addEventListener("click", () => {
+      editorElement.editor.redo();
+    });
+    copyElement.addEventListener("click", () => {
+      navigator.clipboard.writeText(code).then(
+        function () {
+          console.log("Async: Copying to clipboard was successful!");
+        },
+        function (err) {
+          console.error("Async: Could not copy text: ", err);
+        }
+      );
+    });
+    function send_msg(text, capability = null) {
+      url_.pathname = "/invoke_capability";
+      if (capability) {
+        url_.pathname = "/invoke_capability_name/" + capability;
+      }
+      fetch(url_, {
+        method: "POST",
+        body: JSON.stringify({
+          text: text,
+        }),
+        headers: {
+          "Content-type": "application/json; charset=UTF-8",
+        },
+      }).then((response) => {
+        response.json().then((data) => {
+          console.log("data is:", data);
+          if(data.response&&data.response.includes("\\text{")){
+            data.response = katex.renderToString(data.response, {
+              throwOnError: false,
+              displayMode: false,
+            });
+          }
+          addBotMsg(data.response);
+          if (data.voiceFile) {
+            console.log("voice file is:", data.voiceFile);
+            const audioBlob = base64ToBlob(data.voiceFile, "audio/mpeg");
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const player = document.getElementById("audio");
+            player.src = audioUrl;
+            player.play();
+          }
+          if (data.parameters.mistakes && data.parameters.mistakes.length > 0) {
+            const blurrydiv = document.createElement("div");
+            blurrydiv.id = "blurContainer";
+            blurrydiv.className = "blurred";
+            const overlay = document.createElement("div");
+            overlay.id = "blurOverlay";
+            overlay.innerHTML = "Click to reveal to mistakes";
+            const blurredContent = document.createElement("div");
+            blurredContent.id = "blurredContent";
+            blurrydiv.appendChild(overlay);
+            blurrydiv.appendChild(blurredContent);
+            const msgbox = document.getElementById("msgbox");
+            msgbox.appendChild(blurrydiv);
+            data.parameters.mistakes.forEach((mistake) => {
+              addBotMsg(mistake.mistake+"<br/>"+((mistake.correction)?mistake.correction:""), "blurredContent");
+            });
+            document
+              .getElementById("blurContainer")
+              .addEventListener("click", function () {
+                // Toggle the "unblurred" class on click
+                this.classList.toggle("unblurred");
+
+                // Hide the overlay after unblurring
+                const overlay = document.getElementById("blurOverlay");
+                if (this.classList.contains("unblurred")) {
+                  overlay.style.display = "none";
+                } else {
+                  overlay.style.display = "block";
+                }
+              });
+          }
+        });
+      });
+    }
+    sendElement.addEventListener("click", () => {
+      let inp = document.getElementById("msg");
+      const msg = inp.value;
+      addUserMsg(msg);
+      inp.value = "";
+      send_msg(msg);
+    });
+    justSendLatexElement.addEventListener("click", () => {
+      //code = await editorElement.editor.export_("application/x-latex");
+      console.log("code is:", code);
+      addUserMsg("<i>You asked for analysising your input</i>");
+      send_msg(code);
+    });
+    mistakesElement.addEventListener("click", () => {
+      addUserMsg("<i>You asked for mistakes</i>");
+      send_msg(code, "anal_math_mist");
+    });
+    solutionElement.addEventListener("click", () => {
+      addUserMsg("<i>You asked for solution</i>");
+      send_msg(code, "sol_math_ques");
+    });
+    //window.onload= () => editorElement.editor.import_("<math xmlns='http://www.w3.org/1998/Math/MathML'>\n  <mi> x </mi>\n</math>\n", "application/mathml+xml");
+  </script>
+</body>
+</html>

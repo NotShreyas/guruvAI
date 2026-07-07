@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="node_modules/iink-js/dist/iink.min.js"></script>
+        <script src="https://code.jquery.com/pep/0.4.3/pep.js"></script>
+        <style>
+            #editor {
+                display: block;
+                width: 100vw;
+                height: 500px;
+            }
+            .padding {
+              height: 500px;
+            }
+            .editor-container {
+                border: 1px solid black;
+                border-radius: 50px;
+                position: fixed;
+                bottom: 0px;
+                left: 0px;
+            }
+            .buttonRange {
+                display: flex;
+                justify-content: left;
+                align-items: center;
+                padding: 10px;
+                height: 75px;
+                margin-left: 50px;
+                margin-right: 50px;
+                gap: 10px;
+            }
+            .boton{
+              height: 60px;
+              font-size: 24px;
+              border: none;
+              background-color: #4CAF50;
+              border-radius: 10px;
+            }
+        </style>
+        </head>
+    <body>
+  <div class="padding"></div>
+  <div class="editor-container">
+    <div class="buttonRange">
+      <button class="boton" id="convert">Convert</button>
+      <button class="boton" id="clear">Clear</button>
+      <button class="boton" id="enter">New Line</button>
+    </div>
+        <div id="editor" touch-action="none"></div>
+  </div>
+        <!-- <button id="convert">Convert</button> -->
+    <script>
+      function cleanLatex(latexExport) {
+        if (latexExport.includes('\\\\')) {
+          const steps = '\\begin{align*}' + latexExport + '\\end{align*}';
+          return steps.replace("\\begin{aligned}", "")
+            .replace("\\end{aligned}", "")
+            .replace(new RegExp("(align.{1})", "g"), "aligned");
+        }
+        return latexExport
+          .replace(new RegExp("(align.{1})", "g"), "aligned");
+      }
+        const editorElement = document.getElementById('editor');
+        //const resultElement = document.getElementById('result');
+        const convertElement = document.getElementById('convert');
+        const clearElement = document.getElementById('clear');
+        const enterElement = document.getElementById('enter');
+        let intrv = null;
+        let code = "";
+        var jiix = null;
+        //let generator = new HtmlGenerator({ hyphenate: false })
+        iink.register(editorElement, {
+            recognitionParams: {
+                type: 'MATH',
+                protocol: 'WEBSOCKET',
+                server: {
+                    applicationKey: 'cf117228-b3d8-417e-ad20-e71132cc56b5',
+                    hmacKey: '85565ec9-c2f6-4d23-a0e4-5feb781cd14d'
+                },
+            },
+            iink: {
+            math: {
+              mimeTypes: ['application/x-latex', 'application/vnd.myscript.jiix', 'application/mathml+xml'],
+              solver: {
+                enable: true
+              }
+            },
+            export: {
+              jiix: {
+                strokes: true
+              }
+            }
+          }
+        });
+        editorElement.addEventListener('exported', (evt) => {
+        const exports = evt.detail.exports;
+        //console.log(HTMLD);
+        if (exports && exports['application/vnd.myscript.jiix']) {
+          jiix = exports['application/vnd.myscript.jiix'];
+          console.log(jiix);
+        }
+        if (exports && exports['application/x-latex']) {
+          //resultElement.innerText = parse(cleanLatex(exports['application/x-latex']), /*{ generator }*/).htmlDocument();
+          if(intrv) clearTimeout(intrv);
+          intrv = setTimeout(() => {
+            code = exports['application/x-latex'];
+            /*katex.render(cleanLatex(code), resultElement, {
+            throwOnError: false
+          });*/
+          editorElement.editor.convert();
+            //console.log(cleanLatex(exports['application/x-latex']));
+          }, 5000);
+          convertElement.disabled = false;
+          clearElement.disabled = false;
+        }
+        else {
+          //convertElement.disabled = true;
+          //resultElement.innerHTML = '';
+        }
+      });
+      clearElement.addEventListener('click', () => {
+        code = "";
+        //resultElement.innerHTML = '';
+        editorElement.editor.clear();
+        convertElement.disabled = true;
+        clearElement.disabled = true;
+      });
+      enterElement.addEventListener('click', () => {
+        code += '\\\\';
+        editorElement.editor.clear();
+        convertElement.disabled = false;
+        clearElement.disabled = false;
+      });
+      convertElement.addEventListener('click', ()=>{
+        editorElement.editor.convert();
+      })
+    </script>
+    </body>
+</html>

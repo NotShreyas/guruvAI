@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="HandheldFriendly" content="true" />
+
+    <title>Interact with your app</title>
+
+    <link rel="stylesheet" href="../assets/style/reset.css" />
+    <link rel="stylesheet" href="../assets/style/components.css" />
+    <link rel="stylesheet" href="../assets/style/examples.css" />
+
+    <style>
+      #editor {
+        height: calc(100vh - 225px);
+      }
+      @media only screen and (max-width: 391px) {
+        #editor {
+          height: calc(100vh - 259px);
+        }
+      }
+      @media only screen and (max-width: 300px) {
+        #editor {
+          height: calc(100vh - 307px);
+        }
+      }
+
+      .question {
+          font-size: 2em;
+          background-color: #f5f5f5;
+          margin: 0;
+          padding: 12px;
+          border-bottom: 1px solid #D7DDE3;
+          text-align: center;
+      }
+      .result {
+          font-size: 1.25em;
+      }
+      .next-btn .icn {
+          margin: 0 -6px -4px 6px;
+          height: 20px;
+          width: 20px;
+      }
+    </style>
+
+    <script type="text/javascript" src="../../dist/iink.min.js"></script>
+  </head>
+
+  <body>
+    <svg style="display: none;">
+      <symbol id="icn-play" viewBox="0 0 16 16">
+        <path
+          d="M13.153 8.589c.606-.325.603-.854 0-1.178L4.873 2.97C4.392 2.709 4 2.945 4 3.496v9.008c0 .55.39.787.874.527l8.28-4.442z"
+          fill="currentColor"
+          fill-rule="evenodd"
+        ></path>
+      </symbol>
+    </svg>
+
+    <p id="question" class="question"></p>
+
+    <div id="result" class="result"></div>
+
+    <nav class="flex-container wrap gap between">
+      <div class="flex-container wrap gap">
+        <button id="undo" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+          <img src="../assets/img/undo.svg" />
+        </button>
+        <button id="redo" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+          <img src="../assets/img/redo.svg" />
+        </button>
+      </div>
+      <button id="next-btn" class="classic-btn next-btn">
+        Next question
+        <svg class="icn"><use xmlns:xlink="http://www.w3.org/1999/xlink" href="#icn-play"></use></svg>
+      </button>
+    </nav>
+
+    <div id="editor" touch-action="none"></div>
+
+    <script>
+      const editorElement = document.getElementById("editor");
+      const questionElement = document.getElementById("question");
+      const resultElement = document.getElementById("result");
+      const undoElement = document.getElementById("undo");
+      const redoElement = document.getElementById("redo");
+      const nextButton = document.getElementById("next-btn");
+
+      const countries = ["France", "Italy", "Spain", "Argentina", "Japan"];
+      const capitals = ["paris", "rome", "madrid", "buenos aires", "tokyo"];
+
+      let countQuestion = 0;
+
+      questionElement.innerText = "What is the capital of " + countries[countQuestion] + "?";
+
+      function checkAnswer(exportText) {
+        if (exportText.toLowerCase() === capitals[countQuestion]) {
+          resultElement.innerHTML = "<span> Yes, it is " + exportText + ".</span>";
+          resultElement.style.cssText = "color: green;";
+        } else {
+          resultElement.innerHTML = "<span> No, it is not " + exportText + ".</span>";
+          resultElement.style.cssText = "color: red;";
+        }
+      }
+
+      function changeQuestion() {
+        countQuestion++;
+        if (countQuestion > 4) {
+          countQuestion = 0;
+        }
+        questionElement.innerHTML = countries[countQuestion] ? "What is the capital of " + countries[countQuestion] + " ?" : "You won !";
+        editor.clear();
+        resultElement.innerHTML = "";
+      }
+
+      /**
+       * we expose the editor for use in the integration test
+       */
+      let editor;
+
+      /**
+       * Instanciate Editor
+       * @param {Element} The DOM element to attach the ink paper
+       * @param {Object} The editor options
+       */
+      async function loadEditor() {
+        const res = await fetch("../server-configuration.json");
+        const conf = await res.json();
+        const options = {
+          configuration: {
+            server: {
+              ...conf,
+              protocol: "WEBSOCKET"
+            },
+            recognition: {
+              type: "TEXT",
+              text: {
+                mimeTypes: ["text/plain"]
+              }
+            }
+          }
+        };
+        /**
+         * Instanciate editor
+         * @param {Element} The DOM element to attach the ink paper
+         * @param {Object} The Editor parameters
+         */
+        editor = new iink.Editor(editorElement, options);
+        /**
+         *  async initialize editor behaviors
+         */
+        await editor.initialize();
+
+        editor.events.addEventListener("changed", (event) => {
+          undoElement.disabled = !event.detail.canUndo;
+          redoElement.disabled = !event.detail.canRedo;
+        });
+
+        editor.events.addEventListener("exported", (evt) => {
+          const exports = evt.detail;
+          if (exports && exports["text/plain"]) {
+            checkAnswer(exports["text/plain"]);
+          } else {
+            resultElement.innerHTML = "";
+          }
+        });
+
+        nextButton.addEventListener("click", () => {
+          changeQuestion();
+        });
+
+        undoElement.addEventListener("click", () => {
+          editor.undo();
+        });
+
+        redoElement.addEventListener("click", () => {
+          editor.redo();
+        });
+
+        window.addEventListener("resize", () => {
+          editor.resize();
+        });
+      };
+
+      loadEditor().catch(error => console.error(error));
+    </script>
+  </body>
+</html>

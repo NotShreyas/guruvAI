@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="HandheldFriendly" content="true" />
+    <title>Websocket Text</title>
+    <link rel="stylesheet" href="../assets/style/reset.css" />
+    <link rel="stylesheet" href="../assets/style/components.css" />
+    <link rel="stylesheet" href="../assets/style/examples.css" />
+    <script type="text/javascript" src="../../dist/iink.min.js"></script>
+    <style>
+      #editor {
+        height: calc(100vh - 166px);
+      }
+      @media only screen and (max-width: 452px) {
+        #editor {
+          height: calc(100vh - 213px);
+        }
+      }
+    </style>
+    <style>
+      #specific-logger-level {
+        max-height: 500px;
+        overflow: auto;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="result"></div>
+
+    <nav class="flex-container gap between wrap">
+      <div class="flex-container wrap gap">
+        <button id="clear" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+          <img src="../assets/img/clear.svg" />
+        </button>
+        <button id="undo" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+          <img src="../assets/img/undo.svg" />
+        </button>
+        <button id="redo" class="nav-btn btn-fab-mini btn-lightBlue" disabled>
+          <img src="../assets/img/redo.svg" />
+        </button>
+      </div>
+      <div class="flex-container wrap gap">
+        <label> Global log level: </label>
+        <select id="global-logger-level"></select>
+        <div class="dropdown-menu">
+          <button id="line-menu" class="menu-button">
+            <img src="../assets/img/menu.svg" />
+          </button>
+          <ul id="specific-logger-level" class="">
+            <li>
+              <h3>Specific log level</h3>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div id="editor" touch-action="none"></div>
+
+    <script>
+      const editorElement = document.getElementById("editor");
+      const resultElement = document.getElementById("result");
+      const globalLoggerLevelSelect = document.getElementById("global-logger-level");
+      const specificLggerLevel = document.getElementById("specific-logger-level");
+      const clearElement = document.getElementById("clear");
+      const undoElement = document.getElementById("undo");
+      const redoElement = document.getElementById("redo");
+
+      let editor;
+      const loggerConfig = {
+        [iink.LoggerClass.EDITOR]: iink.LoggerLevel.ERROR,
+        [iink.LoggerClass.BEHAVIORS]: iink.LoggerLevel.ERROR,
+        [iink.LoggerClass.RECOGNIZER]: iink.LoggerLevel.ERROR,
+        [iink.LoggerClass.GRABBER]: iink.LoggerLevel.ERROR,
+        [iink.LoggerClass.RENDERER]: iink.LoggerLevel.ERROR,
+        [iink.LoggerClass.CONFIGURATION]: iink.LoggerLevel.ERROR,
+        [iink.LoggerClass.PUBLIC_EVENT]: iink.LoggerLevel.ERROR,
+        [iink.LoggerClass.INTERNAL_EVENT]: iink.LoggerLevel.ERROR,
+        [iink.LoggerClass.MODEL]: iink.LoggerLevel.ERROR,
+        [iink.LoggerClass.STROKE]: iink.LoggerLevel.ERROR,
+        [iink.LoggerClass.SMARTGUIDE]: iink.LoggerLevel.ERROR,
+        [iink.LoggerClass.STYLE]: iink.LoggerLevel.ERROR,
+        [iink.LoggerClass.UNDO_REDO]: iink.LoggerLevel.ERROR
+      };
+
+      Object.keys(iink.LoggerLevel).forEach((level) => {
+        const selected = iink.LoggerLevel[level] === iink.LoggerLevel.ERROR;
+        const opt = new Option(level, iink.LoggerLevel[level], selected, selected);
+        globalLoggerLevelSelect.appendChild(opt);
+      });
+
+      Object.keys(iink.LoggerClass).forEach((c) => {
+        const li = document.createElement("li");
+        li.classList.add("flex-container", "between", "gap")
+        const label = document.createElement("label");
+        label.textContent = c.charAt(0).toUpperCase() + c.slice(1).toLocaleLowerCase() + ": ";
+        li.appendChild(label);
+
+        const select = document.createElement("select");
+        select.classList.add("specific-logger-level-input")
+        Object.keys(iink.LoggerLevel).forEach((level) => {
+          const selected = iink.LoggerLevel[level] === iink.LoggerLevel.ERROR;
+          const opt = new Option(level, iink.LoggerLevel[level], selected, selected);
+          select.appendChild(opt);
+        });
+        li.appendChild(select);
+        select.addEventListener("change", (evt) => {
+          loggerConfig[c] = evt.target.value;
+          editor.loggerConfiguration = loggerConfig;
+        });
+        specificLggerLevel.appendChild(li);
+      });
+
+      /**
+       * We use a function to wait the server configuration to load
+       */
+      async function loadEditor() {
+        const res = await fetch("../server-configuration.json");
+        const conf = await res.json();
+        const options = {
+          logger: loggerConfig,
+          configuration: {
+            server: {
+              ...conf,
+              protocol: "WEBSOCKET"
+            },
+            recognition: {
+              type: "TEXT"
+            }
+          }
+        };
+        /**
+         * Instanciate editor
+         * @param {Element} The DOM element to attach the ink paper
+         * @param {Object} The Editor parameters
+         */
+        editor = new iink.Editor(editorElement, options);
+        /**
+         *  async initialize editor behaviors
+         */
+        await editor.initialize();
+
+        globalLoggerLevelSelect.addEventListener("change", (evt) => {
+          loggerConfig[iink.LoggerClass.EDITOR] = evt.target.value;
+          loggerConfig[iink.LoggerClass.BEHAVIORS] = evt.target.value;
+          loggerConfig[iink.LoggerClass.RECOGNIZER] = evt.target.value;
+          loggerConfig[iink.LoggerClass.GRABBER] = evt.target.value;
+          loggerConfig[iink.LoggerClass.RENDERER] = evt.target.value;
+          loggerConfig[iink.LoggerClass.CONFIGURATION] = evt.target.value;
+          loggerConfig[iink.LoggerClass.PUBLIC_EVENT] = evt.target.value;
+          loggerConfig[iink.LoggerClass.INTERNAL_EVENT] = evt.target.value;
+          loggerConfig[iink.LoggerClass.MODEL] = evt.target.value;
+          loggerConfig[iink.LoggerClass.STROKE] = evt.target.value;
+          loggerConfig[iink.LoggerClass.SMARTGUIDE] = evt.target.value;
+          loggerConfig[iink.LoggerClass.STYLE] = evt.target.value;
+          loggerConfig[iink.LoggerClass.UNDO_REDO] = evt.target.value;
+          Array.from(document.getElementsByClassName("specific-logger-level-input")).forEach(input => {
+            input.value = evt.target.value
+          })
+          editor.loggerConfiguration = loggerConfig;
+        });
+
+        editor.events.addEventListener("changed", (event) => {
+          undoElement.disabled = !event.detail.canUndo;
+          redoElement.disabled = !event.detail.canRedo;
+          clearElement.disabled = !event.detail.canClear;
+        });
+
+        editor.events.addEventListener("exported", (event) => {
+          resultElement.innerHTML =
+            event.detail && event.detail["application/vnd.myscript.jiix"] ? event.detail["application/vnd.myscript.jiix"].label : "";
+        });
+
+        clearElement.addEventListener("click", async () => {
+          editor.clear();
+        });
+
+        undoElement.addEventListener("click", () => {
+          editor.undo();
+        });
+
+        redoElement.addEventListener("click", () => {
+          editor.redo();
+        });
+
+        window.addEventListener("resize", () => {
+          editor.resize();
+        });
+      }
+
+      loadEditor().catch((error) => console.error(error));
+    </script>
+  </body>
+</html>
